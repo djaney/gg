@@ -112,7 +112,13 @@ app.controller('LoginCtrl',function($scope,Player,GameState,GameSocket){
 
 });
 
-app.controller('LobbyCtrl',function($scope,GameState){
+app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 	GameState.check();
+	$scope.findMatch = function(){
+		GameSocket.emit('find_match');
+	}
 
+	GameSocket.on('match_found',function(data){
+		console.log(data);
+	});
 });
