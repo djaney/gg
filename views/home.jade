@@ -1,0 +1,22 @@
+doctype html
+html
+    head
+        title Game
+
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+
+        link(rel="stylesheet", href="/bower_components/bootstrap/dist/css/bootstrap.min.css")
+        link(rel="stylesheet", href="/css/style.css")
+
+    body.ng-cloak(ng-app="game")
+        div.container
+            div(ng-view)
+
+        script(src="/socket.io/socket.io.js")
+        script(src="/bower_components/jquery/dist/jquery.min.js")
+        script(src="/bower_components/bootstrap/dist/js/bootstrap.min.js")
+        script(src="/bower_components/angularjs/angular.min.js")
+        script(src="/bower_components/angular-route/angular-route.min.js")
+        script(src="/bower_components/angular-socket-io/socket.min.js")
+        script(src="js/client.js")
