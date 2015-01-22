@@ -57,7 +57,6 @@ var MatchMaking = {
 		if(this.isMatching) return;
 
 		this.isMatching = true;
-		var holder = null;
 
 		// while in pars
 		while(this.pool.length>1){
@@ -68,6 +67,7 @@ var MatchMaking = {
 
 	},
 	createGame:function(p1,p2){
+		
 		p1.socket.emit('match_found',{
 			enemy: p2.getInfo()
 		});
@@ -108,7 +108,7 @@ var Game = function(io){
 
 					onFindMatch(player);
 					socket.on('disconnect', function () {
-
+						MatchMaking.remove(player);
 						player.disconnected = true;
 						setTimeout(function () {
 							if (player.disconnected){

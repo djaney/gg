@@ -22,7 +22,10 @@ app.config(function($routeProvider, $locationProvider) {
 
 // SERVICES
 app.factory('GameSocket', function (socketFactory) {
-	return socketFactory();
+	var socket = socketFactory();
+	socket.forward('match_found');
+	socket.forward('register');
+	return socket;
 });
 app.factory('GameState',function(Player,$location,GameSocket){
 	var gs = {
@@ -94,7 +97,7 @@ app.controller('LoginCtrl',function($scope,Player,GameState,GameSocket){
 
 		}
 	}
-	GameSocket.on('register',function(data){
+	$scope.$on('socket:register',function(e,data){
 		Player.setId(data.id);
 		Player.setName(data.name);
 		GameState.check();
@@ -117,8 +120,8 @@ app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 	$scope.findMatch = function(){
 		GameSocket.emit('find_match');
 	}
-
-	GameSocket.on('match_found',function(data){
+	$scope.$on('socket:match_found',function(e,data){
 		console.log(data);
 	});
+
 });
