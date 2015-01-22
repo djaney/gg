@@ -28,6 +28,10 @@ app.get('/part/login', function(req, res){
 app.get('/part/lobby', function(req, res){
 	res.render('lobby.jade');
 });
+app.get('/part/game', function(req, res){
+	res.render('game.jade');
+});
+
 
 
 

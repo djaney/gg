@@ -16,6 +16,10 @@ app.config(function($routeProvider, $locationProvider) {
 		templateUrl: 'part/lobby',
 		controller: 'LobbyCtrl'
 	});
+	$routeProvider.when('/game', {
+		templateUrl: 'part/game',
+		controller: 'GameCtrl'
+	});
 });
 
 
@@ -25,12 +29,16 @@ app.factory('GameSocket', function (socketFactory) {
 	var socket = socketFactory();
 	socket.forward('match_found');
 	socket.forward('register');
+	socket.forward('game_session_info');
+
+
 	return socket;
 });
 app.factory('GameState',function(Player,$location,GameSocket){
 	var gs = {
 		state:'splash',
-		connected:false
+		connected:false,
+		inGame:false
 	};
 
 	var obj = {
@@ -39,6 +47,8 @@ app.factory('GameState',function(Player,$location,GameSocket){
 				this.setState('splash');
 			}else if(!Player.hasName()){
 				this.setState('login');
+			}else if(gs.inGame){
+				this.setState('game');
 			}else if(Player.hasName()){
 				this.setState('lobby');
 			}
@@ -46,10 +56,22 @@ app.factory('GameState',function(Player,$location,GameSocket){
 		},
 		getState:function(){return gs.state;},
 		setState:function(s){gs.state = s;},
+		setInGame:function(i){gs.inGame = i;},
+		isInGame:function(){return gs.inGame;},
 		isConnected:function(){return gs.connected;}
 	};
 	GameSocket.on('connect',function(){
 		gs.connected = true;
+		obj.check();
+	});
+
+
+	GameSocket.on('game_start',function(data){
+		obj.setInGame(true);
+		obj.check();
+	});
+	GameSocket.on('game_end',function(data){
+		obj.setInGame(false);
 		obj.check();
 	});
 
@@ -124,4 +146,11 @@ app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 		console.log(data);
 	});
 
+});
+
+app.controller('GameCtrl',function($scope,GameState){
+	GameState.check();
+	$scope.$on('socket:game_session_info',function(e,data){
+		console.log(data);
+	});
 });

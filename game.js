@@ -10,8 +10,52 @@ var Player = function(socket,id){
 			id:$this.id,
 			name:$this.name,
 			disconnected:$this.disconnected,
+			inGame:$this.isInGame()
 		}
 	}
+	this.isInGame = function(){
+		return this.getGameSession()!==null;
+	}
+	this.getGameSession = function(){
+		for(var i in MatchMaking.game_sessions){
+			var sess = MatchMaking.game_sessions[i];
+			for(var j in sess.players){
+				var p = sess.players[j];
+				if(p==this)
+					return sess;
+			}
+		}
+		return null;
+	}
+}
+var GameSession = function(players){
+	var $this = this;
+	this.players = players;
+	this.turn = 0;
+
+
+	this.sendGameSessionInfo = function(){
+		for(var i in this.players){
+			var p = this.players[i];
+			p.socket.emit('game_session_info',{
+				isTurn:i==$this.turn
+			});
+		}
+	}
+
+	this.end = function(){
+		var idx = MatchMaking.game_sessions.indexOf(this);
+		if(idx>=0){
+			MatchMaking.game_sessions.splice(idx,1);
+		}
+	}
+
+		for(var i in this.players){
+			var p = this.players[i];
+			p.socket.emit('game_start',{});
+		}
+
+	this.sendGameSessionInfo();
 }
 var Players = {
 	players:[],
@@ -39,9 +83,11 @@ var Players = {
 
 var MatchMaking = {
 	pool:[],
+	game_sessions:[],
 	isMatching:false,
 	add:function(player){
-		if (this.pool.indexOf(player) < 0){
+
+		if (!player.isInGame() && this.pool.indexOf(player) < 0){
 			
 			this.pool.push(player);
 			this.matchPlayers();
@@ -60,13 +106,13 @@ var MatchMaking = {
 
 		// while in pars
 		while(this.pool.length>1){
-			this.createGame(this.pool.pop(),this.pool.pop());
+			this.createGameSession(this.pool.pop(),this.pool.pop());
 		}
 
 		this.isMatching = false;
 
 	},
-	createGame:function(p1,p2){
+	createGameSession:function(p1,p2){
 		
 		p1.socket.emit('match_found',{
 			enemy: p2.getInfo()
@@ -74,6 +120,8 @@ var MatchMaking = {
 		p2.socket.emit('match_found',{
 			enemy: p1.getInfo()
 		});
+
+		this.game_sessions.push(new GameSession([p1,p2]));
 	}
 }
 
@@ -112,6 +160,7 @@ var Game = function(io){
 						player.disconnected = true;
 						setTimeout(function () {
 							if (player.disconnected){
+								player.getGameSession().end();
 								Players.remove(player);
 							}
 							
