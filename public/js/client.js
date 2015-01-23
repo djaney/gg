@@ -122,6 +122,7 @@ app.controller('LoginCtrl',function($scope,Player,GameState,GameSocket){
 	$scope.$on('socket:register',function(e,data){
 		Player.setId(data.id);
 		Player.setName(data.name);
+		GameState.setInGame(data.inGame);
 		GameState.check();
 	});
 	$scope.register = function(){
@@ -151,6 +152,6 @@ app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 app.controller('GameCtrl',function($scope,GameState){
 	GameState.check();
 	$scope.$on('socket:game_session_info',function(e,data){
-		console.log(data);
+		alert('Vs '+data.enemy.name);
 	});
 });
