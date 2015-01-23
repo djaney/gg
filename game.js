@@ -41,6 +41,8 @@ var GameSession = function(players){
 	this.players = players;
 	this.turn = 0;
 
+	this.ready = [false,false];
+
 	this.pieces = [];
 
 
@@ -108,16 +110,23 @@ var GameSession = function(players){
 	this.sendPlayerSessionInfo = function(p){
 			var i = this.players.indexOf(p);
 			var enemy;
+			var playerIdx,enemyIdx;
 			if(i==0){
-				enemy = this.players[1].getInfo();
+				playerIdx = 0;
+				enemyIdx = 1;
+				enemy = this.players[enemyIdx].getInfo();
 			}else{
-				enemy = this.players[0].getInfo();
+				playerIdx = 1;
+				enemyIdx = 0;
+				enemy = this.players[enemyIdx].getInfo();
 			}
 
 			p.socket.emit('game_session_info',{
 				isTurn:i==$this.turn,
 				enemy:enemy,
-				pieces:$this.getPieces(p)
+				pieces:$this.getPieces(p),
+				playerReady:$this.ready[playerIdx],
+				enemyReady:$this.ready[enemyIdx]
 			});
 	}
 
@@ -252,7 +261,8 @@ var Game = function(io){
 						player.disconnected = true;
 						setTimeout(function () {
 							if (player.disconnected){
-								player.getGameSession().end();
+								if(player.isInGame())
+									player.getGameSession().end();
 								Players.remove(player);
 							}
 							

@@ -1,9 +1,25 @@
 h1 Game
 button.btn-btn-default(ng-click="sendCommand('test','test')") Test
-div count: {{pieces.length}}
+
+
+
 div.game-board
 	div.game-row(ng-repeat="row in board")
 		div.game-cell(ng-repeat="cell in row")
-			button.btn.btn-primary.btn-block(disabled) &nbsp;
 
-div(ng-repeat="p in pieces") {{p}}
+			button.btn.btn-default.btn-block(
+				ng-disabled="isFriendlyArea(cell)",
+				ng-hide="playerReady",
+				ng-click="setupPut(cell)"
+			) &nbsp;{{setupCellPreview(cell)}}&nbsp;
+
+div(ng-hide="playerReady")
+	button.btn.btn-primary Ready
+// setting up pieces
+button.btn(
+	ng-repeat="p in pieces",
+	ng-show="p.yours",
+	ng-click="setupHold(p)",
+	ng-disabled="isPieceSettedUp(p)",
+	ng-class="{'btn-default':p!=setupHand,'btn-primary':p==setupHand}"
+) {{p.rank}}

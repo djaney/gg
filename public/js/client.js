@@ -157,7 +157,10 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 
 	$scope.pieces = [];
 	$scope.board = [];
-
+	$scope.playerReady = false;
+	$scope.enemyReady = false;
+	$scope.setupHand = null;
+	$scope.settedUp = [];
 	$scope.sendCommand = function(){
 		GameSocket.emit('game_command',arguments);
 	}
@@ -172,18 +175,57 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 		for(var i=0;i<8;i++){
 			$scope.board[i] = [];
 			for(var j=0;j<9;j++){
-				$scope.board[i][j] = {id:id};
+				$scope.board[i][j] = {
+					id:id,
+					x:j+1,
+					y:i+1,
+					friendlyArea:i>=4,
+					setupPiece:null
+				};
 				id++;
 			}
 		}
 	}
 
+	$scope.isFriendlyArea = function(cell){
+		return !cell.friendlyArea;
+	}
+	$scope.setupHold = function(p){
+		$scope.setupHand = p;
+	}
+	$scope.setupPut = function(cell){
+
+		if(!$scope.isPieceSettedUp(cell.setupPiece)){
+			if($scope.setupHand!==null){
+				$scope.setupHand.x = cell.x;
+				$scope.setupHand.y = cell.y;
+				cell.setupPiece = $scope.setupHand;
+				if(!$scope.isPieceSettedUp(cell.setupPiece))
+					$scope.settedUp.push(cell.setupPiece);
+				$scope.setupHand = null;
+			}
+		}
+
+	}
+	$scope.setupCellPreview = function(cell){
+		if(cell.setupPiece!=null){
+			return cell.setupPiece.rank;
+		}else{
+			return '';
+		}
+		
+	}
+	$scope.isPieceSettedUp = function(p){
+		return $scope.settedUp.indexOf(p)>=0;
+	}
 	$scope.$on('socket:game_session_info',function(e,data){
 		$scope.pieces.length = 0;
-		console.log();
 		angular.forEach(data.pieces,function(p){
 			$scope.pieces.push(p);
 		});
+
+		$scope.playerReady = data.playerReady;
+		$scope.enemyReady = data.enemyReady;
 		
 	});
 
