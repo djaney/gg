@@ -152,11 +152,14 @@ app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 
 });
 
-app.controller('GameCtrl',function($scope,GameState){
+app.controller('GameCtrl',function($scope,GameState,GameSocket){
 	GameState.check();
 
 	$scope.pieces = [];
 
+	$scope.sendCommand = function(){
+		GameSocket.emit('game_command',arguments);
+	}
 
 	$scope.$on('socket:game_session_info',function(e,data){
 		$scope.pieces.length = 0;

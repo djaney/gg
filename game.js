@@ -27,6 +27,10 @@ var Player = function(socket,id){
 		}
 		return null;
 	}
+
+	this.socket.on('game_command',function(data){
+		$this.getGameSession().runCommand($this,data);
+	});
 }
 var GameSession = function(players){
 	var $this = this;
@@ -39,6 +43,7 @@ var GameSession = function(players){
 
 	this.pieces = [];
 
+
 	this.generatePiece = function(owner,rank){
 		return {
 			x:null,
@@ -47,6 +52,10 @@ var GameSession = function(players){
 			alive:true,
 			owner:owner
 		}
+	}
+	this.runCommand = function(player,args){
+
+		console.log(player.name,args);
 	}
 
 	this.initGameData = function(){
