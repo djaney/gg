@@ -30,16 +30,98 @@ var Player = function(socket,id){
 }
 var GameSession = function(players){
 	var $this = this;
+
+	this.BOARD_ROWS = 8;
+	this.BOARD_COLS = 9;
+
 	this.players = players;
 	this.turn = 0;
 
+	this.pieces = [];
+
+	this.generatePiece = function(owner,rank){
+		return {
+			x:null,
+			y:null,
+			rank:rank,
+			alive:true,
+			owner:owner
+		}
+	}
+
+	this.initGameData = function(){
+		var ranks = [1,2,6,1,1,1,1,1,1,1,1,1,1,1,1];
+		var rank = 1;
+		this.pieces.length = 0;
+		for(var r in ranks){
+			var count = ranks[r];
+			for(var i in this.players){
+				var p = this.players[i];
+				for(var j=0;j<count;j++)
+					this.pieces.push(this.generatePiece(p,rank));
+			}
+			rank++;
+		}
+	}
+	this.invertPiece = function(piece){
+		if(piece.y!==null){
+			piece.y = this.BOARD_ROWS-piece.y;
+		}
+	}
+	this.getPieces = function(player){
+		var playerIdx = this.players.indexOf(player);
+		var pcs = [];
+
+		for(var i in this.pieces){
+			var piece = this.pieces[i];
+			if(playerIdx > 0){
+				$this.invertPiece(piece);
+			}
+			pcs.push({
+				x:piece.x,
+				y:piece.y,
+				rank:piece.rank,
+				alive:piece.alive,
+				yours:piece.owner==player,
+			});
+		}
+
+		return pcs;
+
+	}
 
 	this.sendGameSessionInfo = function(){
 		for(var i in this.players){
-			var p = this.players[i];
+			this.sendPlayerSessionInfo(this.players[i]);
+		}
+	}
+
+	this.sendPlayerSessionInfo = function(p){
+			var i = this.players.indexOf(p);
+			var enemy;
+			if(i==0){
+				enemy = this.players[1].getInfo();
+			}else{
+				enemy = this.players[0].getInfo();
+			}
+
 			p.socket.emit('game_session_info',{
-				isTurn:i==$this.turn
+				isTurn:i==$this.turn,
+				enemy:enemy,
+				pieces:$this.getPieces(p)
 			});
+	}
+
+	this.initialize = function(){
+		this.initGameData();
+		this.sendGameStart();
+		this.sendGameSessionInfo();
+	}
+
+	this.sendGameStart = function(){
+		for(var i in this.players){
+			var p = this.players[i];
+			p.socket.emit('game_start',{});
 		}
 	}
 
@@ -50,12 +132,9 @@ var GameSession = function(players){
 		}
 	}
 
-		for(var i in this.players){
-			var p = this.players[i];
-			p.socket.emit('game_start',{});
-		}
 
-	this.sendGameSessionInfo();
+	this.initialize();
+	
 }
 var Players = {
 	players:[],
@@ -154,7 +233,11 @@ var Game = function(io){
 
 				if(registerSuccess){
 
-					onFindMatch(player);
+
+					registerFindMatch(player);
+					
+
+
 					socket.on('disconnect', function () {
 						MatchMaking.remove(player);
 						player.disconnected = true;
@@ -170,17 +253,24 @@ var Game = function(io){
 					});
 					
 					socket.emit('register',player.getInfo());
+					registerGameSession(player);
 				}
 				
 			}
 		});
 	}
 
-	var onFindMatch = function(player){
+	var registerFindMatch = function(player){
 		player.socket.on('find_match',function(data){
 			MatchMaking.add(player);
 		});
 
+		
+	}
+	var registerGameSession = function(player){
+		if(player.isInGame()){
+			player.getGameSession().sendPlayerSessionInfo(player);
+		}
 		
 	}
 

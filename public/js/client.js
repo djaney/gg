@@ -38,7 +38,8 @@ app.factory('GameState',function(Player,$location,GameSocket){
 	var gs = {
 		state:'splash',
 		connected:false,
-		inGame:false
+		inGame:false,
+		enemy:{}
 	};
 
 	var obj = {
@@ -56,6 +57,8 @@ app.factory('GameState',function(Player,$location,GameSocket){
 		},
 		getState:function(){return gs.state;},
 		setState:function(s){gs.state = s;},
+		getEnemy:function(){return gs.ememy;},
+		setEnemy:function(e){gs.ememy = e;},
 		setInGame:function(i){gs.inGame = i;},
 		isInGame:function(){return gs.inGame;},
 		isConnected:function(){return gs.connected;}
@@ -144,14 +147,23 @@ app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 		GameSocket.emit('find_match');
 	}
 	$scope.$on('socket:match_found',function(e,data){
-		console.log(data);
+		//GameState.setEnemy(data.enemy);
 	});
 
 });
 
 app.controller('GameCtrl',function($scope,GameState){
 	GameState.check();
+
+	$scope.pieces = [];
+
+
 	$scope.$on('socket:game_session_info',function(e,data){
-		alert('Vs '+data.enemy.name);
+		$scope.pieces.length = 0;
+		console.log();
+		angular.forEach(data.pieces,function(p){
+			$scope.pieces.push(p);
+		});
+		
 	});
 });
