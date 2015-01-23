@@ -1,4 +1,9 @@
 h1 Game
 button.btn-btn-default(ng-click="sendCommand('test','test')") Test
 div count: {{pieces.length}}
+div.game-board
+	div.game-row(ng-repeat="row in board")
+		div.game-cell(ng-repeat="cell in row")
+			button.btn.btn-primary.btn-block(disabled) &nbsp;
+
 div(ng-repeat="p in pieces") {{p}}

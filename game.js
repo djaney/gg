@@ -277,9 +277,13 @@ var Game = function(io){
 		
 	}
 	var registerGameSession = function(player){
-		if(player.isInGame()){
-			player.getGameSession().sendPlayerSessionInfo(player);
-		}
+		player.socket.on('get_game_session',function(data){
+			if(player.isInGame()){
+
+				player.getGameSession().sendPlayerSessionInfo(player);
+			}
+		});
+
 		
 	}
 

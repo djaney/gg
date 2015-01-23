@@ -156,9 +156,26 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 	GameState.check();
 
 	$scope.pieces = [];
+	$scope.board = [];
 
 	$scope.sendCommand = function(){
 		GameSocket.emit('game_command',arguments);
+	}
+
+	$scope.initialize = function(){
+		$scope.initBoard();
+		GameSocket.emit('get_game_session',{});
+	};
+	$scope.initBoard = function(){
+		var id = 1;
+		$scope.board.length = 0;
+		for(var i=0;i<8;i++){
+			$scope.board[i] = [];
+			for(var j=0;j<9;j++){
+				$scope.board[i][j] = {id:id};
+				id++;
+			}
+		}
 	}
 
 	$scope.$on('socket:game_session_info',function(e,data){
@@ -169,4 +186,6 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 		});
 		
 	});
+
+	$scope.initialize();
 });

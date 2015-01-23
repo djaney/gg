@@ -1,1 +1,13 @@
 .ng-cloak{display:none!important;color:red;}
+
+.game-board{
+
+}
+.game-board .game-row{}
+.game-board .game-row .game-cell{
+	width:11.11%;
+	float:left;
+	text-align: center;
+
+	box-sizing:border-box;
+}
