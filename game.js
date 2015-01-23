@@ -5,6 +5,16 @@ var Player = function(socket,id){
 	this.disconnected = false;
 	this.name = '';
 
+	this.setSocket = function(s){
+		this.socket = s;
+		this.registerSocket();
+	}
+	this.registerSocket = function(){
+		this.socket.on('game_command',function(data){
+			if($this.isInGame())
+				$this.getGameSession().runCommand($this,data);
+		});
+	}
 	this.getInfo = function(){
 		return {
 			id:$this.id,
@@ -16,6 +26,7 @@ var Player = function(socket,id){
 	this.isInGame = function(){
 		return this.getGameSession()!==null;
 	}
+
 	this.getGameSession = function(){
 		for(var i in MatchMaking.game_sessions){
 			var sess = MatchMaking.game_sessions[i];
@@ -28,9 +39,10 @@ var Player = function(socket,id){
 		return null;
 	}
 
-	this.socket.on('game_command',function(data){
-		$this.getGameSession().runCommand($this,data);
-	});
+	this.registerSocket();
+
+
+
 }
 var GameSession = function(players){
 	var $this = this;
@@ -45,9 +57,70 @@ var GameSession = function(players){
 
 	this.pieces = [];
 
+	this.getEnemy = function(p){
+		if(this.players.indexOf(p)==0) {
+			return this.players[1];
+		}else{
+			return this.players[0];
+		}
+	}
+	this.isPlayerInverse = function(p){
+		return this.players.indexOf(p)>0;
+	}
+
+
+	this.runCommand = function(player,args){
+		
+		if(this.players.indexOf(player)<0) return;
+		if(args.length<2) return;
+
+		var method = args[0];
+		var data = args[1];
+
+		if(this.commands.hasOwnProperty(method)){
+			this.commands[method](data);
+		}
+
+	}
+	this.sendCommand = function(player,method,data){
+		player.socket.emit('game_command',[method,data]);
+	}
+	this.commands = {
+		piece_setup:function(data){
+			console.log(data);
+			for(var i in $this.pieces){
+				var p = $this.pieces[i];
+				if(p.id == data.id){
+					p.x = data.toX;
+					p.y = data.toY;
+
+					var enemy = $this.getEnemy(p.owner);
+
+					if($this.isPlayerInverse(enemy)){
+						$this.invertPiece(p);
+					}
+					
+					$this.sendCommand(enemy,'piece_setup',{
+						id:data.id,
+						fromX:$this.inverseX(data.fromX),
+						fromY:$this.inverseY(data.fromY),
+						toX:$this.inverseX(data.toX),
+						toY:$this.inverseY(data.toY),
+					});
+					
+
+
+					break;
+				}
+
+			}
+		}
+	}
+
 
 	this.generatePiece = function(owner,rank){
 		return {
+			id:this.pieces.length+1,
 			x:null,
 			y:null,
 			rank:rank,
@@ -55,10 +128,8 @@ var GameSession = function(players){
 			owner:owner
 		}
 	}
-	this.runCommand = function(player,args){
 
-		console.log(player.name,args);
-	}
+
 
 	this.initGameData = function(){
 		var ranks = [1,2,6,1,1,1,1,1,1,1,1,1,1,1,1];
@@ -76,8 +147,26 @@ var GameSession = function(players){
 	}
 	this.invertPiece = function(piece){
 		if(piece.y!==null){
-			piece.y = this.BOARD_ROWS-piece.y;
+			piece.y = this.inverseY(piece.y);
+
 		}
+		if(piece.x!==null){
+			piece.x = this.inverseX(piece.x);
+		}
+	}
+	this.inverseX = function(x){
+		//return x;
+		if(x!=null)
+			return this.BOARD_COLS-1-x;
+		else
+			return null;
+	}
+	this.inverseY = function(y){
+		//return y;
+		if(y!==null)
+			return this.BOARD_ROWS-1-y;
+		else
+			return null;
 	}
 	this.getPieces = function(player){
 		var playerIdx = this.players.indexOf(player);
@@ -85,10 +174,11 @@ var GameSession = function(players){
 
 		for(var i in this.pieces){
 			var piece = this.pieces[i];
-			if(playerIdx > 0){
+			if(playerIdx > 0){ // invert if player 2
 				$this.invertPiece(piece);
 			}
 			pcs.push({
+				id:piece.id,
 				x:piece.x,
 				y:piece.y,
 				rank:piece.rank,
@@ -243,8 +333,8 @@ var Game = function(io){
 					}
 
 				}else{
-					// has existing player
-					player.socket = socket;
+					// reconnect
+					player.setSocket(socket);
 					registerSuccess = true;
 					player.disconnected = false;
 				}

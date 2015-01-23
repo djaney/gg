@@ -30,6 +30,7 @@ app.factory('GameSocket', function (socketFactory) {
 	socket.forward('match_found');
 	socket.forward('register');
 	socket.forward('game_session_info');
+	socket.forward('game_command');
 
 
 	return socket;
@@ -177,39 +178,54 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 			for(var j=0;j<9;j++){
 				$scope.board[i][j] = {
 					id:id,
-					x:j+1,
-					y:i+1,
-					friendlyArea:i>=4,
-					setupPiece:null
+					x:j,
+					y:i,
+					setupArea:i>4,
+					piece:null
 				};
 				id++;
 			}
 		}
 	}
 
-	$scope.isFriendlyArea = function(cell){
-		return !cell.friendlyArea;
+	$scope.isSetupArea = function(cell){
+		return !cell.setupArea;
 	}
 	$scope.setupHold = function(p){
-		$scope.setupHand = p;
+		if(p.yours)
+			$scope.setupHand = p;
 	}
 	$scope.setupPut = function(cell){
 
-		if(!$scope.isPieceSettedUp(cell.setupPiece)){
+		if(!$scope.isPieceSettedUp(cell.piece)){
 			if($scope.setupHand!==null){
+				var fromX = $scope.setupHand.x;
+				var fromY = $scope.setupHand.y;
+				// change coordinates if piece on hand
 				$scope.setupHand.x = cell.x;
 				$scope.setupHand.y = cell.y;
-				cell.setupPiece = $scope.setupHand;
-				if(!$scope.isPieceSettedUp(cell.setupPiece))
-					$scope.settedUp.push(cell.setupPiece);
+				// put piece on cell
+				cell.piece = $scope.setupHand;
+				// flag as setted
+				if(!$scope.isPieceSettedUp(cell.piece))
+					$scope.settedUp.push(cell.piece);
+				// send command
+				$scope.sendCommand('piece_setup',{
+					fromX:fromX,
+					fromY:fromY,
+					toX:$scope.setupHand.x,
+					toY:$scope.setupHand.y,
+					id:$scope.setupHand.id,
+				});
+				// remove piece from hand
 				$scope.setupHand = null;
 			}
 		}
 
 	}
 	$scope.setupCellPreview = function(cell){
-		if(cell.setupPiece!=null){
-			return cell.setupPiece.rank;
+		if(cell.piece!=null){
+			return $scope.rankToName(cell.piece.rank);
 		}else{
 			return '';
 		}
@@ -218,14 +234,66 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 	$scope.isPieceSettedUp = function(p){
 		return $scope.settedUp.indexOf(p)>=0;
 	}
+	$scope.rankToName = function(rank){
+		rank = Number(rank);
+		var names = ['Flag','Spy','Pvt.','Sgt.','2nd Lt.','1st Lt.','Cap.','Maj.','Lt. Col.','Col.','*','**','***','****','*****'];
+		if(rank>0 && rank<=names.length){
+			return names[rank-1];
+		}else{
+			return rank;
+		}
+	};
+	$scope.commands = {
+		piece_setup:function(data){
+			
+			// get piece
+			var p = null;
+			for(var i in $scope.pieces){
+				if($scope.pieces[i].id==data.id){
+					p = $scope.pieces[i];
+					break;
+				}
+				
+			}
+			if(p==null) return;
+			// remove piece form orig cell
+			if(p.x!==null && p.y!==null) $scope.board[p.x][p.y].piece = null;
+			// move to new cell
+			if(data.toX!==null && data.toY!==null){
+				console.log(data);
+				$scope.board[data.toY][data.toX].piece = p;
+			}
+			// set flag
+			if(!$scope.isPieceSettedUp(p))
+				$scope.settedUp.push(p);
+
+		}
+	};
+	$scope.runCommand = function(args){
+		
+		if(args.length<2) return;
+
+		var method = args[0];
+		var data = args[1];
+
+		if($scope.commands.hasOwnProperty(method)){
+			$scope.commands[method](data);
+			if(!$scope.$$phase) $scope.$apply();
+		}
+
+	}
 	$scope.$on('socket:game_session_info',function(e,data){
 		$scope.pieces.length = 0;
 		angular.forEach(data.pieces,function(p){
 			$scope.pieces.push(p);
 		});
-
 		$scope.playerReady = data.playerReady;
 		$scope.enemyReady = data.enemyReady;
+		
+	});
+
+	$scope.$on('socket:game_command',function(e,data){
+		$scope.runCommand(data);
 		
 	});
 

@@ -8,18 +8,17 @@ div.game-board
 		div.game-cell(ng-repeat="cell in row")
 
 			button.btn.btn-default.btn-block(
-				ng-disabled="isFriendlyArea(cell)",
+				ng-disabled="isSetupArea(cell)",
 				ng-hide="playerReady",
 				ng-click="setupPut(cell)"
-			) &nbsp;{{setupCellPreview(cell)}}&nbsp;
+			)&nbsp;{{setupCellPreview(cell)}}&nbsp;
 
 div(ng-hide="playerReady")
 	button.btn.btn-primary Ready
 // setting up pieces
 button.btn(
 	ng-repeat="p in pieces",
-	ng-show="p.yours",
 	ng-click="setupHold(p)",
-	ng-disabled="isPieceSettedUp(p)",
+	ng-hide="isPieceSettedUp(p) || !p.yours",
 	ng-class="{'btn-default':p!=setupHand,'btn-primary':p==setupHand}"
-) {{p.rank}}
+) {{rankToName(p.rank)}}
