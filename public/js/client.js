@@ -225,9 +225,23 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 	}
 	$scope.setupCellPreview = function(cell){
 		if(cell.piece!=null){
-			return $scope.rankToName(cell.piece.rank);
+			if(cell.piece.yours){
+				return $scope.rankToName(cell.piece.rank);
+			}else{
+				return '???';
+			}
+			
 		}else{
 			return '';
+		}
+		
+	}
+
+	$scope.isCellPieceIsYours = function(cell,noCellValue){
+		if(cell.piece!=null){
+			return cell.piece.yours;
+		}else{
+			return noCellValue || false;
 		}
 		
 	}
