@@ -96,7 +96,7 @@ var GameSession = function(players){
 
 					var enemy = $this.getEnemy(p.owner);
 
-					if($this.isPlayerInverse(enemy)){
+					if($this.isPlayerInverse(p.owner)){
 						$this.invertPiece(p);
 					}
 					
@@ -156,7 +156,7 @@ var GameSession = function(players){
 	}
 	this.inverseX = function(x){
 		//return x;
-		if(x!=null)
+		if(x!==null)
 			return this.BOARD_COLS-1-x;
 		else
 			return null;
@@ -169,18 +169,22 @@ var GameSession = function(players){
 			return null;
 	}
 	this.getPieces = function(player){
-		var playerIdx = this.players.indexOf(player);
+		var isInverse = $this.isPlayerInverse(player);
 		var pcs = [];
-
 		for(var i in this.pieces){
+
+
 			var piece = this.pieces[i];
-			if(playerIdx > 0){ // invert if player 2
-				$this.invertPiece(piece);
+			var x = piece.x;
+			var y = piece.y;
+			if(isInverse){ // invert if player 2
+				if(piece.x!==null) x = $this.inverseX(piece.x);
+				if(piece.y!==null) y = $this.inverseY(piece.y);
 			}
 			pcs.push({
 				id:piece.id,
-				x:piece.x,
-				y:piece.y,
+				x:x,
+				y:y,
 				rank:piece.rank,
 				alive:piece.alive,
 				yours:piece.owner==player,
@@ -283,7 +287,7 @@ var MatchMaking = {
 	remove:function(player){
 		var idx = this.pool.indexOf(player);
 		if(idx>=0)
-			pool.splice(idx,1);
+			this.pool.splice(idx,1);
 	},
 	matchPlayers:function(){
 
@@ -354,7 +358,9 @@ var Game = function(io){
 								if(player.isInGame())
 									player.getGameSession().end();
 								Players.remove(player);
+								console.log('10 second disconnect');
 							}
+
 							
 						}, DISCONNET_TIME_LIMIT);
 		

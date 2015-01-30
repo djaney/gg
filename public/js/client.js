@@ -257,10 +257,10 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 			}
 			if(p==null) return;
 			// remove piece form orig cell
-			if(p.x!==null && p.y!==null) $scope.board[p.x][p.y].piece = null;
+			if(p.x!==null && p.y!==null) $scope.board[p.y][p.x].piece = null;
 			// move to new cell
 			if(data.toX!==null && data.toY!==null){
-				console.log(data);
+				console.log('setup piece',data);
 				$scope.board[data.toY][data.toX].piece = p;
 			}
 			// set flag
@@ -285,6 +285,11 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 	$scope.$on('socket:game_session_info',function(e,data){
 		$scope.pieces.length = 0;
 		angular.forEach(data.pieces,function(p){
+			if(p.x!==null && p.y!==null){
+				console.log(p);
+				$scope.board[p.y][p.x].piece = p;
+			}
+				
 			$scope.pieces.push(p);
 		});
 		$scope.playerReady = data.playerReady;
