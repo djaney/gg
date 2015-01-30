@@ -3,7 +3,7 @@
 div.game-board
 	div.game-row(ng-repeat="row in board")
 		div.game-cell(ng-repeat="cell in row")
-
+			// button for setting up the board
 			button.btn.btn-default.btn-block(
 				ng-disabled="isSetupArea(cell)",
 				ng-hide="playerReady",

@@ -300,7 +300,9 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 		$scope.pieces.length = 0;
 		angular.forEach(data.pieces,function(p){
 			if(p.x!==null && p.y!==null){
-				console.log(p);
+				// flag as setted
+				if(!$scope.isPieceSettedUp(p))
+					$scope.settedUp.push(p);
 				$scope.board[p.y][p.x].piece = p;
 			}
 				
