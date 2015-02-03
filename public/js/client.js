@@ -16,9 +16,9 @@ app.config(function($routeProvider, $locationProvider) {
 		templateUrl: 'part/lobby',
 		controller: 'LobbyCtrl'
 	});
-	$routeProvider.when('/game', {
-		templateUrl: 'part/game',
-		controller: 'GameCtrl'
+	$routeProvider.when('/game-setup', {
+		templateUrl: 'part/game-setup',
+		controller: 'GameSetupCtrl'
 	});
 });
 
@@ -27,10 +27,17 @@ app.config(function($routeProvider, $locationProvider) {
 // SERVICES
 app.factory('GameSocket', function (socketFactory) {
 	var socket = socketFactory();
+	// forward messages as angular events
 	socket.forward('match_found');
 	socket.forward('register');
 	socket.forward('game_session_info');
 	socket.forward('game_command');
+	socket.forward('player_ready_info');
+
+
+	socket.sendCommand = function(){
+		this.emit('game_command',arguments);
+	}
 
 
 	return socket;
@@ -40,6 +47,7 @@ app.factory('GameState',function(Player,$location,GameSocket){
 		state:'splash',
 		connected:false,
 		inGame:false,
+		isGameReady:false,
 		enemy:{}
 	};
 
@@ -50,7 +58,7 @@ app.factory('GameState',function(Player,$location,GameSocket){
 			}else if(!Player.hasName()){
 				this.setState('login');
 			}else if(gs.inGame){
-				this.setState('game');
+				this.setState('game-setup');
 			}else if(Player.hasName()){
 				this.setState('lobby');
 			}
@@ -62,6 +70,8 @@ app.factory('GameState',function(Player,$location,GameSocket){
 		setEnemy:function(e){gs.ememy = e;},
 		setInGame:function(i){gs.inGame = i;},
 		isInGame:function(){return gs.inGame;},
+		setGameReady:function(i){gs.isGameReady = i;},
+		isGameReady:function(){return gs.isGameReady;},
 		isConnected:function(){return gs.connected;}
 	};
 	GameSocket.on('connect',function(){
@@ -153,7 +163,7 @@ app.controller('LobbyCtrl',function($scope,GameState,GameSocket){
 
 });
 
-app.controller('GameCtrl',function($scope,GameState,GameSocket){
+app.controller('GameSetupCtrl',function($scope,GameState,GameSocket){
 	GameState.check();
 
 	$scope.pieces = [];
@@ -162,9 +172,6 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 	$scope.enemyReady = false;
 	$scope.setupHand = null;
 	$scope.settedUp = [];
-	$scope.sendCommand = function(){
-		GameSocket.emit('game_command',arguments);
-	}
 
 	$scope.initialize = function(){
 		$scope.initBoard();
@@ -195,10 +202,22 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 		if(p.yours)
 			$scope.setupHand = p;
 	}
-	$scope.setupPut = function(cell){
-
+	$scope.setupCell = function(cell){
+		// put piece
 		if(!$scope.isPieceSettedUp(cell.piece)){
 			if($scope.setupHand!==null){
+
+				// check if it exists on board and remove if it does
+				for(var i=0;i<8;i++){
+					for(var j=0;j<9;j++){
+						if($scope.board[i][j].piece===$scope.setupHand){
+							$scope.board[i][j].piece = null;
+							break;
+						}
+					
+					}
+				}
+
 				var fromX = $scope.setupHand.x;
 				var fromY = $scope.setupHand.y;
 				// change coordinates if piece on hand
@@ -210,7 +229,7 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 				if(!$scope.isPieceSettedUp(cell.piece))
 					$scope.settedUp.push(cell.piece);
 				// send command
-				$scope.sendCommand('piece_setup',{
+				GameSocket.sendCommand('piece_setup',{
 					fromX:fromX,
 					fromY:fromY,
 					toX:$scope.setupHand.x,
@@ -219,7 +238,15 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 				});
 				// remove piece from hand
 				$scope.setupHand = null;
+
+
 			}
+		}else if(cell.piece!==null && $scope.setupHand===null){
+			// pick up on board
+			$scope.setupHand = cell.piece;
+		}else if(cell.piece!==null && $scope.setupHand!==null){
+			// change puck up
+			$scope.setupHand = cell.piece;
 		}
 
 	}
@@ -257,6 +284,22 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 			return rank;
 		}
 	};
+	$scope.isPlayerReady = function(){
+		var unplaced = 0;
+		for(var p in $scope.pieces){
+			if($scope.pieces[p].yours===false) continue;
+			if(!$scope.isPieceSettedUp($scope.pieces[p])){
+				unplaced++;
+			}
+		}
+
+		return unplaced==0;
+	}
+
+	$scope.setReady = function(val){
+		GameSocket.sendCommand('player_ready',{isReady:true});
+	}
+
 	$scope.commands = {
 		piece_setup:function(data){
 			
@@ -277,9 +320,17 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 				console.log('setup piece',data);
 				$scope.board[data.toY][data.toX].piece = p;
 			}
+
+			// remove from old cell
+			if(data.fromX!==null && data.fromY!==null){
+				console.log('setup piece',data);
+				$scope.board[data.fromY][data.fromX].piece = null;
+			}
 			// set flag
 			if(!$scope.isPieceSettedUp(p))
 				$scope.settedUp.push(p);
+
+
 
 		}
 	};
@@ -296,6 +347,10 @@ app.controller('GameCtrl',function($scope,GameState,GameSocket){
 		}
 
 	}
+	$scope.$on('socket:player_ready_info',function(e,data){
+		console.log('ready info',data);
+	});
+
 	$scope.$on('socket:game_session_info',function(e,data){
 		$scope.pieces.length = 0;
 		angular.forEach(data.pieces,function(p){

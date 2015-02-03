@@ -78,7 +78,7 @@ var GameSession = function(players){
 		var data = args[1];
 
 		if(this.commands.hasOwnProperty(method)){
-			this.commands[method](data);
+			this.commands[method](data,player);
 		}
 
 	}
@@ -87,7 +87,6 @@ var GameSession = function(players){
 	}
 	this.commands = {
 		piece_setup:function(data){
-			console.log(data);
 			for(var i in $this.pieces){
 				var p = $this.pieces[i];
 				if(p.id == data.id){
@@ -114,9 +113,37 @@ var GameSession = function(players){
 				}
 
 			}
+		},
+		player_ready:function(data,player){
+			var idx = $this.players.indexOf(player);
+			if(idx>=0 && data.isReady!==null){
+				$this.ready[idx] = data.isReady;
+			}
+			for(var i in $this.players){
+				$this.sendReadyInfo($this.players[i]);
+			}
+			
+
+
 		}
 	}
 
+	this.sendReadyInfo = function(player){
+		var idx = $this.players.indexOf(player);
+		var me,enemy,data;
+		if(idx==0){
+			data = {
+				me:$this.ready[0],
+				enemy:$this.ready[1]
+			};
+		}else{
+			data = {
+				me:$this.ready[1],
+				enemy:$this.ready[0]
+			};
+		}
+		player.socket.emit('player_ready_info',data);
+	}
 
 	this.generatePiece = function(owner,rank){
 		return {

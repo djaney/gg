@@ -7,12 +7,13 @@ div.game-board
 			button.btn.btn-default.btn-block(
 				ng-disabled="isSetupArea(cell)",
 				ng-hide="playerReady",
-				ng-click="setupPut(cell)",
-				ng-class="{'btn-danger':!isCellPieceIsYours(cell,true),'btn-primary':isCellPieceIsYours(cell,false)}"
+				ng-click="setupCell(cell)",
+				ng-class="{'btn-danger':!isCellPieceIsYours(cell,true),'btn-primary':isCellPieceIsYours(cell,false),'active':(setupHand==cell.piece && setupHand!==null)}"
 			) &nbsp;{{setupCellPreview(cell)}}&nbsp;
 
-div(ng-hide="playerReady")
-	button.btn.btn-primary Ready
+button.btn.btn-primary(ng-disabled="!isPlayerReady()", ng-click="setReady(true)") Ready
+
+
 // setting up pieces
 button.btn(
 	ng-repeat="p in pieces",
